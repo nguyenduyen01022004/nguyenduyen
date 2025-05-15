@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Công cụ mã hóa và giải mã DES</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body class="bg-gradient-to-br from-pink-50 to-pink-100 min-h-screen flex items-center justify-center p-8">
+  <div class="bg-pink-200 shadow-lg rounded-xl p-8 w-full max-w-lg">
+    <h1 class="text-2xl font-bold mb-6 text-center text-indigo-700">Công cụ Mã hóa & Giải mã DES</h1>
+
+    <div class="mb-4">
+      <label class="block mb-2 text-gray-700 font-medium">Chọn file văn bản:</label>
+      <input id="fileInput" type="file" accept=".txt,text/plain" class="w-full border border-indigo-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+    </div>
+
+    <div class="mb-4">
+      <label class="block mb-2 text-gray-700 font-medium">Nhập mã khóa (8 ký tự):</label>
+      <input id="keyInput" type="text" maxlength="8" placeholder="Nhập mã khóa..." class="w-full border border-indigo-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+    </div>
+
+    <div class="flex justify-between mb-4 space-x-3">
+      <button id="encryptBtn" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg shadow transition">Mã hóa</button>
+      <button id="decryptBtn" class="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 rounded-lg shadow transition">Giải mã</button>
+      <button id="downloadBtn" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 rounded-lg shadow transition">Tải xuống</button>
+    </div>
+
+    <div class="mb-4">
+      <label class="block mb-2 text-gray-700 font-medium">Nội dung gốc:</label>
+      <textarea id="originalContent" rows="5" readonly class="w-full p-3 rounded-lg border border-gray-300 bg-gray-100 resize-none"></textarea>
+    </div>
+
+    <div>
+      <label class="block mb-2 text-gray-700 font-medium">Kết quả:</label>
+      <textarea id="resultContent" rows="5" readonly class="w-full p-3 rounded-lg border border-gray-300 bg-gray-100 resize-none"></textarea>
+    </div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const keyInput = document.getElementById('keyInput');
+    const originalContent = document.getElementById('originalContent');
+    const resultContent = document.getElementById('resultContent');
+    const encryptBtn = document.getElementById('encryptBtn');
+    const decryptBtn = document.getElementById('decryptBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    let currentFileContent = '';
+
+    fileInput.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => {
+        currentFileContent = evt.target.result;
+        originalContent.value = currentFileContent;
+        resultContent.value = '';
+      };
+      reader.readAsText(file);
+    });
+
+    function isValidKey(key) {
+      return key.length === 8;
+    }
+
+    function encryptDES(text, key) {
+      const keyHex = CryptoJS.enc.Utf8.parse(key);
+      const encrypted = CryptoJS.DES.encrypt(text, keyHex, {
+        mode: CryptoJS.mode.ECB,
+        padding: CryptoJS.pad.Pkcs7
+      });
+      return encrypted.toString();
+    }
+
+    function decryptDES(ciphertext, key) {
+      try {
+        const keyHex = CryptoJS.enc.Utf8.parse(key);
+        const decrypted = CryptoJS.DES.decrypt(ciphertext, keyHex, {
+          mode: CryptoJS.mode.ECB,
+          padding: CryptoJS.pad.Pkcs7
+        });
+        return decrypted.toString(CryptoJS.enc.Utf8);
+      } catch {
+        return null;
+      }
+    }
+
+    encryptBtn.addEventListener('click', () => {
+      const key = keyInput.value.trim();
+      if (!currentFileContent || !isValidKey(key)) {
+        alert('Vui lòng chọn file và nhập mã khóa hợp lệ!');
+        return;
+      }
+      const encryptedText = encryptDES(currentFileContent, key);
+      resultContent.value = encryptedText;
+    });
+
+    decryptBtn.addEventListener('click', () => {
+      const key = keyInput.value.trim();
+      const cipherText = resultContent.value.trim();
+      if (!cipherText || !isValidKey(key)) {
+        alert('Vui lòng mã hóa dữ liệu trước hoặc nhập dữ liệu mã hóa hợp lệ!');
+        return;
+      }
+      const decryptedText = decryptDES(cipherText, key);
+      if (decryptedText !== null) {
+        resultContent.value = decryptedText;
+      } else {
+        alert('Mã khóa không đúng hoặc dữ liệu không hợp lệ!');
+      }
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const data = resultContent.value;
+      if (!data) {
+        alert('Không có dữ liệu để tải xuống!');
+        return;
+      }
+      const blob = new Blob([data], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'result.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
